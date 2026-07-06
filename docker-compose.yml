@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db-events:
+    image: postgres:17
+    container_name: postgres-events
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: event_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    driver: local
