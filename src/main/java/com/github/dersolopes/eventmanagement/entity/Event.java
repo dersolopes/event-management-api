@@ -49,4 +49,12 @@ public class Event {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "address_id", nullable = false)
     private Address address;
+
+    @ManyToMany
+    @JoinTable(
+            name = "event_organizers",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private java.util.Set<User> organizers = new java.util.HashSet<>();
 }
