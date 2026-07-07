@@ -24,7 +24,7 @@ O projeto adota o padrão de empacotamento por camadas, isolando responsabilidad
 * `service/`: Camada onde residem as regras de negócio e validações.
 * `security/`: Regras de filtros JWT e controle de acessos (RBAC).
 * `exception/`: Tratamento global de erros (`GlobalExceptionHandler`).
-
+Obs.: Para entender o histórico e as justificativas das decisões técnicas tomadas neste projeto, acesse os [Registros de Decisão Arquitetural (ADRs)](docs/adr/).
 ---
 
 ## 🗄️ Modelo de Dados (Decisões de Design)
