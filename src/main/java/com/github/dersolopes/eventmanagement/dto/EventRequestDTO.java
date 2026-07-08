@@ -20,11 +20,11 @@ public class EventRequestDTO {
 
     private String description;
 
-    @NotBlank(message = "A data de início do evento é obrigatória")
+    @NotNull(message = "A data de início do evento é obrigatória")
     @Future(message = "A data de início deve ser no futuro")
     private LocalDateTime startDate;
 
-    @NotBlank(message = "A data de fim do evento é obrigatória")
+    @NotNull(message = "A data de fim do evento é obrigatória")
     @Future(message = "A data de fim deve ser no futuro")
     private LocalDateTime endDate;
 
