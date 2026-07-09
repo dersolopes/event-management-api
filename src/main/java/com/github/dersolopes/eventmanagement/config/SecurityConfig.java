@@ -22,8 +22,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 3. Libera as rotas de teste
+                // Adicionamos o /error aqui para permitir que o Spring Security deixe
+                // as respostas do GlobalExceptionHandler passarem limpas enquanto nao implementamos o JWT
+                // TODO - Deletar após implementar JWT
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/v1/**").permitAll()
+                        .requestMatchers("/api/v1/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();
