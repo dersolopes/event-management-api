@@ -1,0 +1,216 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: My first collection
+meta:
+  id: wrk_099cac07fc864584af166d6372a6525f
+  created: 1783436936257
+  modified: 1783436936257
+  description: ""
+collection:
+  - url: http://localhost:8080/api/v1/categories
+    name: 1. Criar Categoria Base
+    meta:
+      id: req_5fda4bc6343a4d4d88f4233d3f4d28b1
+      created: 1783436956776
+      modified: 1783473737184
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219916
+    method: POST
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "name": "Tecnologia"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/users
+    name: 2. Criar Usuário Participante
+    meta:
+      id: req_629e35a1ecf34a6ca3c64c92ca46753b
+      created: 1783437015645
+      modified: 1783475823389
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219866
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+          "email": "anderson4@teste.com",
+          "password": "senha_criptografada",
+          "role": "PARTICIPANT"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/events
+    name: 3. Criar o Evento Corporativo
+    meta:
+      id: req_34c4072df4274108908f155131690da6
+      created: 1783437150690
+      modified: 1783999630707
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219841
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+          "title": "Summit Java 2026",
+          "description": "O maior evento de Java e Docker do ecossistema.",
+          "startDate": "2026-08-10T09:00:00",
+          "endDate": "2026-08-12T18:00:00",
+          "capacity": 2,
+          "categoryId": 1,
+          "address": {
+            "street": "Avenida Paulista, 1000",
+            "city": "São Paulo",
+            "state": "SP"
+          }
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/registrations/event/{{ id_event }}?userId={{
+      _.id_user3 }}
+    name: 3.1. Inscrever usuario em evento (concorrencia)
+    meta:
+      id: req_5af21ca5758e4f11a2abab696e03eaf0
+      created: 1783437219816
+      modified: 1783999982945
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219834.75
+    method: POST
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/events
+    name: 4. Consulta o Evento Corporativo
+    meta:
+      id: req_06dee6f8317d4de1acae82b1529b0af9
+      created: 1783999523089
+      modified: 1783999854938
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219828.5
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/events?city=São Paulo
+    name: 5. Consulta o Evento Corporativo por cidade
+    meta:
+      id: req_45b7e2ff056c46848fa2a9f405f7a3e6
+      created: 1783999793988
+      modified: 1783999881164
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219822.25
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/events?city=São Paulo&categoryId=1&size=1
+    name: 6. Consulta o Evento Corporativo - Filtros (Cidade + Categoria + Paginação)
+    meta:
+      id: req_351f42132333477ab27359c02b9a2526
+      created: 1783999820706
+      modified: 1783999948604
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219819.125
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/v1/events?city=São Paulo&categoryId=1&size=1
+    name: 7. Consulta o Evento Corporativo - Filtrar por Data de Início (A partir
+      de...)
+    meta:
+      id: req_5802b9e4a02b4822abdcc342f5b7bf05
+      created: 1783999938110
+      modified: 1783999959796
+      isPrivate: false
+      description: ""
+      sortKey: -1783437219817.5625
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_df6c6ec3b7cd67d24abb1de7249519dc0123e506
+    created: 1783436936260
+    modified: 1783438041460
+  cookies:
+    - id: c55f1d77-c354-42f1-8a07-b90819e70c58
+      key: JSESSIONID
+      value: FFA6769F10BE46BD0479A8A297B12BC5
+      domain: localhost
+      path: /
+      secure: false
+      httpOnly: true
+      hostOnly: true
+environments:
+  name: Base Environment
+  meta:
+    id: env_df6c6ec3b7cd67d24abb1de7249519dc0123e506
+    created: 1783436936259
+    modified: 1783436936259
+    isPrivate: false

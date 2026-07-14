@@ -2,6 +2,7 @@ package com.github.dersolopes.eventmanagement.repository;
 
 import com.github.dersolopes.eventmanagement.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface EventRepository extends JpaRepository<Event, UUID> {
+public interface EventRepository extends JpaRepository<Event, UUID>, JpaSpecificationExecutor<Event> {
 
     /**
      * Tenta incrementar o contador de participantes atomicamente a nível de banco de dados,
@@ -24,3 +25,5 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
             "WHERE e.id = :eventId AND e.currentCount < e.capacity")
     int reservarVaga(@Param("eventId") UUID eventId);
 }
+
+
