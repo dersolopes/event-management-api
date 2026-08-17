@@ -1,77 +1,137 @@
 package com.github.dersolopes.eventmanagement.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Controlador global para interceptação e tratamento de exceções da aplicação.
  * Centraliza as respostas de erro mapeando exceções técnicas e de negócio
- * para os respectivos status HTTP semânticos usando mapas dinâmicos.
+ * para DTOs padronizados (ProblemDetailResponse) com status HTTP semânticos.
  *
  * @author dersolopes
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Captura exceções de validação dos DTOs disparadas pelo @Valid no Controller.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ProblemDetailResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new HashMap<>();
+
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+
+            // Log limpo e individual por campo com falha de validação
+            log.warn("Erro de validação no campo '{}': {}", fieldError.getField(), fieldError.getDefaultMessage());
+        }
+
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Requisição Inválida",
+                "Um ou mais campos estão inválidos. Corrija o formulário e tente novamente.",
+                LocalDateTime.now(),
+                fieldErrors
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 
     /**
      * Captura violações de integridade do banco de dados (ex: chaves duplicadas / UNIQUE constraint).
-     * Traduz uma falha técnica de persistência em uma resposta semântica de conflito.
-     *
-     * @param ex A exceção de integridade disparada pelo Spring Data / Hibernate
-     * @return {@link ResponseEntity} contendo o mapa de erro com status 409 Conflict
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", Instant.now());
-        body.put("status", HttpStatus.CONFLICT.value());
-        body.put("error", "Conflito de Dados");
-        body.put("message", "Participante já está inscrito neste evento!");
+    public ResponseEntity<ProblemDetailResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Violação de integridade no banco de dados: {}", ex.getMostSpecificCause().getMessage());
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflito de Dados",
+                "O registro já existe no sistema ou possui dependências ativas vinculadas.",
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     /**
-     * Captura exceções associadas a quebras de regras de negócio (ex: evento com capacidade máxima atingida).
-     * Retorna a mensagem customizada definida no momento do disparo da exceção.
-     *
-     * @param ex A exceção de regra de negócio customizada da aplicação
-     * @return {@link ResponseEntity} contendo o mapa de erro com status 409 Conflict
+     * Captura exceções associadas a quebras de regras de negócio.
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Map<String, Object>> handleBusiness(BusinessException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", Instant.now());
-        body.put("status", HttpStatus.CONFLICT.value());
-        body.put("error", "Regra de Negócio");
-        body.put("message", ex.getMessage());
+    public ResponseEntity<ProblemDetailResponse> handleBusiness(BusinessException ex) {
+        log.warn("Regra de negócio violada: {}", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.CONFLICT.value(),
+                "Regra de Negócio Violada",
+                ex.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     /**
-     * Captura exceções de recursos não encontrados (ex: busca por IDs inexistentes de eventos ou usuários).
-     * Retorna a mensagem customizada informando qual recurso não foi localizado.
-     *
-     * @param ex A exceção de recurso não encontrado customizada da aplicação
-     * @return {@link ResponseEntity} contendo o mapa de erro com status 404 Not Found
+     * Captura exceções de recursos não encontrados (ex: IDs inexistentes).
      */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", Instant.now());
-        body.put("status", HttpStatus.NOT_FOUND.value());
-        body.put("error", "Não Encontrado");
-        body.put("message", ex.getMessage());
+    public ResponseEntity<ProblemDetailResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        log.warn("Recurso não encontrado: {}", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.NOT_FOUND.value(),
+                "Recurso Não Encontrado",
+                ex.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
+
+    /**
+     * Captura exceções genéricas não tratadas (fallback para erros 500).
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetailResponse> handleUncaughtException(Exception ex) {
+        log.error("Erro interno não tratado no servidor: ", ex);
+
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Erro Interno no Servidor",
+                "Ocorreu um erro inesperado. Entre em contato com o suporte se o problema persistir.",
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ProblemDetailResponse> handleResponseStatusException(ResponseStatusException ex) {
+        ProblemDetailResponse problem = new ProblemDetailResponse(
+                ex.getStatusCode().value(),
+                "Recurso Não Encontrado",
+                ex.getReason() != null ? ex.getReason() : ex.getMessage(),
+                LocalDateTime.now(),
+                null // fieldErrors é null para erros de recurso não encontrado
+        );
+        return ResponseEntity.status(ex.getStatusCode()).body(problem);
+    }
+
 }
