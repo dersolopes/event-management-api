@@ -11,6 +11,7 @@ import com.github.dersolopes.eventmanagement.repository.CategoryRepository;
 import com.github.dersolopes.eventmanagement.repository.EventRepository;
 import com.github.dersolopes.eventmanagement.repository.EventSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventService {
@@ -29,6 +31,8 @@ public class EventService {
 
     @Transactional
     public EventResponseDTO criarEvento (EventRequestDTO dto){
+
+        log.info("Iniciando criação de evento com o título: '{}'", dto.getTitle());
 
 // 1. Busca a categoria no banco para garantir que ela existe
         Category category = categoryRepository.findById(dto.getCategoryId())
