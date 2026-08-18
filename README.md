@@ -5,12 +5,13 @@ API REST para gerenciamento de eventos corporativos (Summits, Feiras de Tecnolog
 ---
 
 ## 🛠️ Tecnologias e Ferramentas
-* **Java 21** & **Spring Boot 3**
+* **Java 21** & **Spring Boot 3.5+**
 * **Spring Security** & **JWT** (Autenticação e Autorização)
 * **PostgreSQL** (Banco de dados relacional)
 * **Flyway** (Migração e versionamento de banco)
 * **Docker** & **Docker Compose** (Containerização do ambiente)
 * **MapStruct** & **Lombok** (Produtividade e mapeamento de DTOs)
+* **JUnit 5**, **Mockito** & **MockMvc** (Testes automatizados da camada web e de negócio)
 
 ---
 
@@ -20,11 +21,14 @@ O projeto adota o padrão de empacotamento por camadas, isolando responsabilidad
 * `controller/`: Camada de exposição dos endpoints HTTP (consome e retorna apenas DTOs).
 * `dto/`: Objetos de transferência de dados e payloads.
 * `entity/`: Entidades JPA representando o modelo relacional.
+* `enums/`: Tipos enumerados de domínio (ex: `RegistrationStatus`).
 * `repository/`: Interfaces de acesso a dados (Spring Data JPA).
-* `service/`: Camada onde residem as regras de negócio e validações.
+* `service/`: Camada onde residem as regras de negócio, auditoria e validações.
 * `security/`: Regras de filtros JWT e controle de acessos (RBAC).
 * `exception/`: Tratamento global de erros (`GlobalExceptionHandler`).
-Obs.: Para entender o histórico e as justificativas das decisões técnicas tomadas neste projeto, acesse os [Registros de Decisão Arquitetural (ADRs)](docs/adr/).
+
+> **Nota:** Para entender o histórico e as justificativas das decisões técnicas tomadas neste projeto, acesse os [Registros de Decisão Arquitetural (ADRs)](docs/adr/).
+
 ---
 
 ## 🗄️ Modelo de Dados (Decisões de Design)
