@@ -12,6 +12,7 @@ API REST para gerenciamento de eventos corporativos (Summits, Feiras de Tecnolog
 * **Docker** & **Docker Compose** (Containerização do ambiente)
 * **MapStruct** & **Lombok** (Produtividade e mapeamento de DTOs)
 * **JUnit 5**, **Mockito** & **MockMvc** (Testes automatizados da camada web e de negócio)
+* **Auth0 JWT** (Biblioteca para geração e validação de tokens JWT)
 
 ---
 
@@ -26,6 +27,41 @@ O projeto adota o padrão de empacotamento por camadas, isolando responsabilidad
 * `service/`: Camada onde residem as regras de negócio, auditoria e validações.
 * `security/`: Regras de filtros JWT e controle de acessos (RBAC).
 * `exception/`: Tratamento global de erros (`GlobalExceptionHandler`).
+
+---
+
+## 🔐 Autenticação e Autorização
+
+### Fluxo de Autenticação JWT
+A API utiliza autenticação stateless baseada em tokens JWT (JSON Web Tokens):
+
+1. **Registro (`POST /api/v1/auth/register`)**: Usuário cria conta com e-mail e senha. A senha é criptografada com BCrypt antes de persistir no banco.
+2. **Login (`POST /api/v1/auth/login`)**: Usuário fornece credenciais. O `AuthenticationManager` valida usando `DaoAuthenticationProvider` e `UserDetailsService`.
+3. **Geração de Token**: Após autenticação bem-sucedida, um token JWT é gerado com assinatura HMAC256 contendo:
+   - `subject`: e-mail do usuário
+   - `issuer`: identificação da aplicação
+   - `expiration`: tempo de validade (configurável, padrão 24h)
+4. **Acesso a Endpoints Protegidos**: O token é enviado no header `Authorization: Bearer <token>`. O `JwtAuthenticationFilter` valida e extrai as informações do usuário para cada requisição.
+
+### Correção de StackOverflowError na Autenticação
+**Problema:** O endpoint de login estava lançando `java.lang.StackOverflowError` devido à ausência de uma implementação explícita do `UserDetailsService`. O Spring Security não conseguia carregar os usuários durante a autenticação.
+
+**Solução Implementada:**
+- Criação de `UserDetailsServiceImpl` que implementa `UserDetailsService` e busca usuários diretamente no `UserRepository` pelo e-mail.
+- Configuração explícita do `DaoAuthenticationProvider` no `SecurityConfig`, vinculando o `UserDetailsService` e o `PasswordEncoder` (BCrypt).
+- Esta abordagem elimina dependências cíclicas e fornece um caminho claro para o Spring Security carregar e autenticar usuários.
+
+### Resposta de Autenticação
+O endpoint de login retorna um DTO contendo:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "type": "Bearer",
+  "userId": "uuid-do-usuario",
+  "email": "usuario@exemplo.com",
+  "role": "PARTICIPANT"
+}
+```
 
 > **Nota:** Para entender o histórico e as justificativas das decisões técnicas tomadas neste projeto, acesse os [Registros de Decisão Arquitetural (ADRs)](docs/adr/).
 

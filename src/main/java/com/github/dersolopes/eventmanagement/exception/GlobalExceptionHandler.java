@@ -134,4 +134,42 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatusCode()).body(problem);
     }
 
+    /**
+     * Captura falhas de autenticação (ex: senha incorreta ou usuário inexistente).
+     * Retorna HTTP 401 Unauthorized.
+     */
+    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+    public ResponseEntity<ProblemDetailResponse> handleBadCredentials(Exception ex) {
+        log.warn("Falha de autenticação: credenciais inválidas fornecidas. Motivo: {}", ex.getMessage());
+
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.UNAUTHORIZED.value(),
+                "Não Autorizado",
+                "Credenciais inválidas. Verifique seu e-mail e senha.",
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
+     * Captura tentativas de acesso negado por falta de privilégios/roles.
+     * Retorna HTTP 403 Forbidden.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetailResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Acesso negado para o recurso solicitado: {}", ex.getMessage());
+
+        ProblemDetailResponse response = new ProblemDetailResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Acesso Negado",
+                "Você não possui permissão para acessar este recurso.",
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
 }

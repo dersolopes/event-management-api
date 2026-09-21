@@ -2,6 +2,8 @@ package com.github.dersolopes.eventmanagement.service;
 
 import com.github.dersolopes.eventmanagement.dto.CategoryRequestDTO;
 import com.github.dersolopes.eventmanagement.entity.Category;
+import com.github.dersolopes.eventmanagement.exception.BusinessException;
+import com.github.dersolopes.eventmanagement.exception.ResourceNotFoundException;
 import com.github.dersolopes.eventmanagement.repository.CategoryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -10,8 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,20 +58,19 @@ class CategoryServiceTest {
         }
 
         @Test
-        @DisplayName("Deve lançar ResponseStatusException (BAD_REQUEST) quando tentar cadastrar categoria com nome duplicado")
-        void criar_DeveLancarExcecao_QuandoNomeJaExistir() {
+        @DisplayName("Deve lançar BusinessException quando tentar cadastrar categoria com nome duplicado")
+        void criar_DeveLancarBusinessException_QuandoNomeJaExistir() {
             // ARRANGE
             CategoryRequestDTO dto = new CategoryRequestDTO("Tecnologia");
             when(repository.existsByNameIgnoreCase("Tecnologia")).thenReturn(true);
 
             // ACT & ASSERT
-            ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
+            BusinessException exception = assertThrows(
+                    BusinessException.class,
                     () -> service.criar(dto)
             );
 
-            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-            assertTrue(exception.getReason().contains("Já existe uma categoria com este nome"));
+            assertTrue(exception.getMessage().contains("Já existe uma categoria cadastrada com o nome 'Tecnologia'"));
 
             verify(repository, times(1)).existsByNameIgnoreCase("Tecnologia");
             verify(repository, never()).save(any());
@@ -104,19 +103,19 @@ class CategoryServiceTest {
         }
 
         @Test
-        @DisplayName("Deve lançar ResponseStatusException (NOT_FOUND) quando o ID não existir")
-        void buscarPorId_DeveLancarExcecao_QuandoIdNaoExistir() {
+        @DisplayName("Deve lançar ResourceNotFoundException quando o ID não existir")
+        void buscarPorId_DeveLancarResourceNotFoundException_QuandoIdNaoExistir() {
             // ARRANGE
             Long idInexistente = 99L;
             when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 
             // ACT & ASSERT
-            ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
+            ResourceNotFoundException exception = assertThrows(
+                    ResourceNotFoundException.class,
                     () -> service.buscarPorId(idInexistente)
             );
 
-            assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+            assertTrue(exception.getMessage().contains("Categoria não encontrada com o ID: 99"));
             verify(repository, times(1)).findById(idInexistente);
         }
     }
@@ -174,19 +173,19 @@ class CategoryServiceTest {
         }
 
         @Test
-        @DisplayName("Deve lançar ResponseStatusException (NOT_FOUND) ao tentar deletar categoria inexistente")
-        void deletar_DeveLancarExcecao_QuandoIdNaoExistir() {
+        @DisplayName("Deve lançar ResourceNotFoundException ao tentar deletar categoria inexistente")
+        void deletar_DeveLancarResourceNotFoundException_QuandoIdNaoExistir() {
             // ARRANGE
             Long idInexistente = 99L;
             when(repository.existsById(idInexistente)).thenReturn(false);
 
             // ACT & ASSERT
-            ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
+            ResourceNotFoundException exception = assertThrows(
+                    ResourceNotFoundException.class,
                     () -> service.deletar(idInexistente)
             );
 
-            assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+            assertTrue(exception.getMessage().contains("Categoria não encontrada com o ID: 99"));
             verify(repository, times(1)).existsById(idInexistente);
             verify(repository, never()).deleteById(any());
         }

@@ -9,6 +9,7 @@ import com.github.dersolopes.eventmanagement.exception.ResourceNotFoundException
 import com.github.dersolopes.eventmanagement.mapper.EventMapper;
 import com.github.dersolopes.eventmanagement.repository.CategoryRepository;
 import com.github.dersolopes.eventmanagement.repository.EventRepository;
+import com.github.dersolopes.eventmanagement.service.impl.EventServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,11 +28,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("EventService - Testes Unitários de Regra de Negócio")
 class EventServiceTest {
 
     @Mock
@@ -44,95 +48,227 @@ class EventServiceTest {
     private EventMapper eventMapper;
 
     @InjectMocks
-    private EventService eventService;
+    private EventServiceImpl eventService;
+    // CORRECAO: EventServiceImpl é a classe concreta, o @InjectMocks daria erro:
+        // Cannot instantiate @InjectMocks field named 'eventService'!
+        // Cause: the type 'EventService' is an interface.
 
     @Nested
-    @DisplayName("Testes do método criarEvento()")
-    class CriarEventoTestes {
+    @DisplayName("Método: criarEvento()")
+    class CriarEventoContext {
 
-        @Test
-        @DisplayName("Deve criar evento com sucesso e definir status ACTIVE")
-        void criarEvento_ComSucesso_QuandoDadosValidos() {
-            // ARRANGE
-            Long categoryId = 1L;
-            EventRequestDTO dto = new EventRequestDTO();
-            dto.setTitle("Dev Conference 2026");
-            dto.setCategoryId(categoryId);
+        @Nested
+        @DisplayName("Quando os dados de entrada são válidos")
+        class QuandoDadosValidos {
 
-            Category category = Category.builder().id(categoryId).name("Tecnologia").build();
-            Event eventIncompleto = Event.builder().title("Dev Conference 2026").build();
-            Event eventSalvo = Event.builder().id(UUID.randomUUID()).title("Dev Conference 2026").category(category).status(EventStatus.ACTIVE).build();
-            EventResponseDTO responseDTO = new EventResponseDTO();
+            @Test
+            @DisplayName("Deve salvar o evento com sucesso, definir status ACTIVE e vincular a categoria")
+            void deveCriarEventoComSucesso() {
+                // Given (Arrange)
+                Long categoryId = 1L;
+                EventRequestDTO requestDTO = new EventRequestDTO();
+                requestDTO.setTitle("Dev Conference 2026");
+                requestDTO.setCategoryId(categoryId);
 
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-            when(eventMapper.toEntity(dto)).thenReturn(eventIncompleto);
-            when(eventRepository.save(any(Event.class))).thenReturn(eventSalvo);
-            when(eventMapper.toResponseDTO(eventSalvo)).thenReturn(responseDTO);
+                Category category = Category.builder()
+                        .id(categoryId)
+                        .name("Tecnologia")
+                        .build();
 
-            // ACT
-            EventResponseDTO result = eventService.criarEvento(dto);
+                Event eventMapeado = Event.builder()
+                        .title("Dev Conference 2026")
+                        .build();
 
-            // ASSERT
-            assertNotNull(result);
-            assertEquals(EventStatus.ACTIVE, eventIncompleto.getStatus());
-            assertEquals(category, eventIncompleto.getCategory());
+                Event eventSalvo = Event.builder()
+                        .id(UUID.randomUUID())
+                        .title("Dev Conference 2026")
+                        .category(category)
+                        .status(EventStatus.ACTIVE)
+                        .build();
 
-            verify(categoryRepository, times(1)).findById(categoryId);
-            verify(eventRepository, times(1)).save(eventIncompleto);
-            verify(eventMapper, times(1)).toResponseDTO(eventSalvo);
+                EventResponseDTO responseEsperado = new EventResponseDTO();
+
+                when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+                when(eventMapper.toEntity(requestDTO)).thenReturn(eventMapeado);
+                when(eventRepository.save(any(Event.class))).thenReturn(eventSalvo);
+                when(eventMapper.toResponseDTO(eventSalvo)).thenReturn(responseEsperado);
+
+                // When (Act)
+                EventResponseDTO result = eventService.criarEvento(requestDTO);
+
+                // Then (Assert)
+                assertThat(result).isNotNull().isEqualTo(responseEsperado);
+                assertThat(eventMapeado.getStatus()).isEqualTo(EventStatus.ACTIVE);
+                assertThat(eventMapeado.getCategory()).isEqualTo(category);
+
+                verify(categoryRepository, times(1)).findById(categoryId);
+                verify(eventRepository, times(1)).save(eventMapeado);
+                verify(eventMapper, times(1)).toResponseDTO(eventSalvo);
+            }
         }
 
-        @Test
-        @DisplayName("Deve lançar ResourceNotFoundException quando a categoria informada não existir")
-        void criarEvento_DeveLancarExcecao_QuandoCategoriaNaoExiste() {
-            // ARRANGE
-            Long categoryIdInexistente = 99L;
-            EventRequestDTO dto = new EventRequestDTO();
-            dto.setCategoryId(categoryIdInexistente);
+        @Nested
+        @DisplayName("Quando a categoria informada não existe")
+        class QuandoCategoriaNaoExiste {
 
-            when(categoryRepository.findById(categoryIdInexistente)).thenReturn(Optional.empty());
+            @Test
+            @DisplayName("Deve lançar ResourceNotFoundException e não interagir com a persistência de eventos")
+            void deveLancarExcecaoQuandoCategoriaInexistente() {
+                // Given (Arrange)
+                Long categoryIdInexistente = 99L;
+                EventRequestDTO requestDTO = new EventRequestDTO();
+                requestDTO.setCategoryId(categoryIdInexistente);
 
-            // ACT & ASSERT
-            ResourceNotFoundException exception = assertThrows(
-                    ResourceNotFoundException.class,
-                    () -> eventService.criarEvento(dto)
-            );
+                when(categoryRepository.findById(categoryIdInexistente)).thenReturn(Optional.empty());
 
-            assertTrue(exception.getMessage().contains("Categoria não encontrada com o ID: 99"));
-            verify(eventRepository, never()).save(any());
-            verify(eventMapper, never()).toEntity(any());
+                // When (Act) & Then (Assert)
+                assertThatThrownBy(() -> eventService.criarEvento(requestDTO))
+                        .isInstanceOf(ResourceNotFoundException.class)
+                        .hasMessageContaining("Categoria não encontrada com o ID: 99");
+
+                verify(eventRepository, never()).save(any());
+                verify(eventMapper, never()).toEntity(any());
+            }
         }
     }
 
     @Nested
-    @DisplayName("Testes do método listarComFiltros()")
-    class ListarComFiltrosTestes {
+    @DisplayName("Método: buscarPorId()")
+    class BuscarPorIdContext {
 
-        @Test
-        @DisplayName("Deve buscar eventos com filtros e retornar página mapeada para DTO")
-        @SuppressWarnings("unchecked")
-        void listarComFiltros_DeveRetornarPaginaDeEventos() {
-            // ARRANGE
-            String city = "Carapicuíba";
-            Long categoryId = 1L;
-            LocalDateTime startDate = LocalDateTime.now();
-            Pageable pageable = PageRequest.of(0, 10);
+        @Nested
+        @DisplayName("Quando o evento existe no banco de dados")
+        class QuandoEventoExiste {
 
-            Event event = Event.builder().id(UUID.randomUUID()).title("Meetup Java").build();
-            Page<Event> pageEventos = new PageImpl<>(List.of(event));
-            EventResponseDTO responseDTO = new EventResponseDTO();
+            @Test
+            @DisplayName("Deve retornar o DTO do evento com sucesso")
+            void deveRetornarEventoQuandoIdExiste() {
+                // Given (Arrange)
+                UUID id = UUID.randomUUID();
+                Event event = Event.builder().id(id).title("Meetup Java").build();
+                EventResponseDTO responseDTO = new EventResponseDTO();
 
-            when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(pageEventos);
-            when(eventMapper.toResponseDTO(event)).thenReturn(responseDTO);
+                when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+                when(eventMapper.toResponseDTO(event)).thenReturn(responseDTO);
 
-            // ACT
-            Page<EventResponseDTO> result = eventService.listarComFiltros(city, categoryId, startDate, pageable);
+                // When (Act)
+                EventResponseDTO result = eventService.buscarPorId(id);
 
-            // ASSERT
-            assertNotNull(result);
-            assertEquals(1, result.getTotalElements());
-            verify(eventRepository, times(1)).findAll(any(Specification.class), eq(pageable));
-            verify(eventMapper, times(1)).toResponseDTO(event);
+                // Then (Assert)
+                assertThat(result).isNotNull().isEqualTo(responseDTO);
+
+                verify(eventRepository, times(1)).findById(id);
+                verify(eventMapper, times(1)).toResponseDTO(event);
+            }
+        }
+
+        @Nested
+        @DisplayName("Quando o evento não é encontrado")
+        class QuandoEventoNaoExiste {
+
+            @Test
+            @DisplayName("Deve lançar ResourceNotFoundException ao buscar ID inexistente")
+            void deveLancarExcecaoQuandoIdInexistente() {
+                // Given (Arrange)
+                UUID idInexistente = UUID.randomUUID();
+                when(eventRepository.findById(idInexistente)).thenReturn(Optional.empty());
+
+                // When (Act) & Then (Assert)
+                assertThatThrownBy(() -> eventService.buscarPorId(idInexistente))
+                        .isInstanceOf(ResourceNotFoundException.class)
+                        .hasMessageContaining("Evento não encontrado");
+
+                verify(eventRepository, times(1)).findById(idInexistente);
+                verify(eventMapper, never()).toResponseDTO(any());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Método: listarComFiltros()")
+    class ListarComFiltrosContext {
+
+        @Nested
+        @DisplayName("Quando a consulta de filtro é executada com sucesso")
+        class QuandoFiltrosAplicados {
+
+            @Test
+            @DisplayName("Deve buscar eventos filtrados e retornar a página mapeada para DTOs")
+            @SuppressWarnings("unchecked")
+            void deveRetornarPaginaDeEventosMapeados() {
+                // Given (Arrange)
+                String city = "Carapicuíba";
+                Long categoryId = 1L;
+                LocalDateTime startDate = LocalDateTime.now();
+                Pageable pageable = PageRequest.of(0, 10);
+
+                Event event = Event.builder().id(UUID.randomUUID()).title("Meetup Java").build();
+                Page<Event> pageEventos = new PageImpl<>(List.of(event));
+                EventResponseDTO responseDTO = new EventResponseDTO();
+
+                when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(pageEventos);
+                when(eventMapper.toResponseDTO(event)).thenReturn(responseDTO);
+
+                // When (Act)
+                Page<EventResponseDTO> result = eventService.listarComFiltros(city, categoryId, startDate, pageable);
+
+                // Then (Assert)
+                assertThat(result).isNotNull();
+                assertThat(result.getContent()).hasSize(1).containsExactly(responseDTO);
+
+                verify(eventRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+                verify(eventMapper, times(1)).toResponseDTO(event);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Método: cancelarEvento()")
+    class CancelarEventoContext {
+
+        @Nested
+        @DisplayName("Quando o evento existe e está ativo")
+        class QuandoEventoValido {
+
+            @Test
+            @DisplayName("Deve atualizar o status do evento para CANCELED")
+            void deveCancelarEventoComSucesso() {
+                // Given (Arrange)
+                UUID id = UUID.randomUUID();
+                Event event = Event.builder().id(id).status(EventStatus.ACTIVE).build();
+
+                when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+                when(eventRepository.save(event)).thenReturn(event);
+
+                // When (Act)
+                eventService.cancelarEvento(id);
+
+                // Then (Assert)
+                assertThat(event.getStatus()).isEqualTo(EventStatus.CANCELED);
+
+                verify(eventRepository, times(1)).findById(id);
+                verify(eventRepository, times(1)).save(event);
+            }
+        }
+
+        @Nested
+        @DisplayName("Quando o evento a ser cancelado não é localizado")
+        class QuandoEventoNaoExiste {
+
+            @Test
+            @DisplayName("Deve lançar ResourceNotFoundException e não realizar chamada ao repositório para salvar")
+            void deveLancarExcecaoQuandoCancelarInexistente() {
+                // Given (Arrange)
+                UUID idInexistente = UUID.randomUUID();
+                when(eventRepository.findById(idInexistente)).thenReturn(Optional.empty());
+
+                // When (Act) & Then (Assert)
+                assertThatThrownBy(() -> eventService.cancelarEvento(idInexistente))
+                        .isInstanceOf(ResourceNotFoundException.class);
+
+                verify(eventRepository, times(1)).findById(idInexistente);
+                verify(eventRepository, never()).save(any());
+            }
         }
     }
 }

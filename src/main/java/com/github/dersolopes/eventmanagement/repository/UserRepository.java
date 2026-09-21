@@ -9,5 +9,9 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
+
     Optional<User> findByEmail(String email);
+
+    // Adicione esta linha para o Spring Data criar a query automaticamente
+    boolean existsByEmail(String email);
 }
